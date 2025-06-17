@@ -1,0 +1,33 @@
+name: Security Scan (Mend + Checkmarx)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Mend CLI
+        run: npm install -g @mend/cli
+
+      - name: Run Mend Scan
+        run: |
+          mend config set apiKey ${{ secrets.MEND_API_KEY }}
+          mend scan --output mend-report.json
+
+      - name: Fail if Mend vulnerabilities exist
+        run: |
+          VULNS=$(jq '.vulnerabilities | length' mend-report.json)
+          echo "🛑 Found $VULNS vulnerabilities"
+          if [ "$VULNS" -gt 0 ]; then
+            echo "❌ Failing pipeline due to Mend vulnerabilities."
+            exit 1
+          fi
+
+      - name: Run Checkmarx scan (Placeholder)
+        run: echo "🛡️ Your Checkmarx scan would run here."
